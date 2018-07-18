@@ -32,7 +32,7 @@ contract Basic777 is Ownable, ERC20Token, ERC777Token, ERC820Implementer {
     /// @param _name Name of the new token
     /// @param _symbol Symbol of the new token.
     /// @param _granularity Minimum transferable chunk.
-    function Basic777(
+    constructor(
         string _name,
         string _symbol,
         uint256 _granularity

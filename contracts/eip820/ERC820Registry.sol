@@ -1,4 +1,4 @@
-pragma solidity 0.4.20;
+pragma solidity 0.4.24;
 
 interface ERC820ImplementerInterface {
     /// @notice Contracts that implement an interferce in behalf of another contract must return true
