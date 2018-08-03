@@ -21,7 +21,6 @@ contract UnstructuredOwnedUpgradeabilityProxy is UnstructuredUpgradeabilityProxy
   bytes32 private constant proxyOwnerPosition = keccak256("org.nori.proxy.owner");
 
   //Storage position of the registry to keep track of versions
-  //todo is it the case that adding this second reserved slot messes with storage elsewhere?
   bytes32 private constant registryAddrPosition = keccak256("org.nori.registry.address");
   
   /**
@@ -104,7 +103,6 @@ contract UnstructuredOwnedUpgradeabilityProxy is UnstructuredUpgradeabilityProxy
    */
   function upgradeTo(string contractName, string versionName, address implementation) public onlyProxyOwner {
     _upgradeTo(implementation);
-    //todo register interface lookup using eip820 -- not including this now as implications are unknown
     address registry = registryAddr();
     IVersionRegistry(registry).setVersion(
       contractName, 
@@ -112,7 +110,6 @@ contract UnstructuredOwnedUpgradeabilityProxy is UnstructuredUpgradeabilityProxy
       versionName, 
       implementation
     );
-    //todo require version name doesnt exits
     emit Upgraded(versionName, implementation);
   }
 

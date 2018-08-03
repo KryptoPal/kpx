@@ -17,6 +17,8 @@ exports.test = function(web3, accounts, token) {
         });
       let currentBlock = await web3.eth.getBlockNumber();
       let { timestamp } = await web3.eth.getBlock(currentBlock);
+
+      //lock 90% of account 1's tokens
       await token.contract.methods
         .lockAndDistributeTokens(
           accounts[1],
@@ -28,6 +30,13 @@ exports.test = function(web3, accounts, token) {
           from: accounts[0],
           gas: 4600000,
         });
+
+      assert.equal(
+        web3.utils.toWei('1'),
+        await token.contract.methods
+          .getAmountOfUnlockedTokens(accounts[1])
+          .call({ gas: 300000, from: accounts[1] })
+      );
     });
 
     it(
@@ -79,7 +88,7 @@ exports.test = function(web3, accounts, token) {
 
     it(
       `should let ${utils.formatAccount(accounts[1])} ` +
-        `send 10 ${token.symbol} ` +
+        `send 5 ${token.symbol} ` +
         `to ${utils.formatAccount(accounts[2])} after the lock period expired`,
       async function() {
         await utils.assertTotalSupply(web3, token, 10);
@@ -88,17 +97,29 @@ exports.test = function(web3, accounts, token) {
         await utils.assertBalance(web3, token, accounts[2], 0);
 
         await sleep(10000);
+        assert.equal(
+          web3.utils.toWei('10'),
+          await token.contract.methods
+            .getAmountOfUnlockedTokens(accounts[1])
+            .call({ gas: 300000, from: accounts[1] })
+        );
 
         await token.contract.methods
-          .send(accounts[2], web3.utils.toWei('10'), '0xcafe')
+          .send(accounts[2], web3.utils.toWei('5'), '0xcafe')
           .send({ gas: 300000, from: accounts[1] });
 
         await utils.getBlock(web3);
 
+        assert.equal(
+          web3.utils.toWei('5'),
+          await token.contract.methods
+            .getAmountOfUnlockedTokens(accounts[1])
+            .call({ gas: 300000, from: accounts[1] })
+        );
         await utils.assertTotalSupply(web3, token, 10);
         await utils.assertBalance(web3, token, accounts[0], 0);
-        await utils.assertBalance(web3, token, accounts[1], 0);
-        await utils.assertBalance(web3, token, accounts[2], 10);
+        await utils.assertBalance(web3, token, accounts[1], 5);
+        await utils.assertBalance(web3, token, accounts[2], 5);
       }
     );
 
@@ -151,7 +172,7 @@ exports.test = function(web3, accounts, token) {
 
     it(
       `should let ${utils.formatAccount(accounts[1])} ` +
-        `transfer 10 ${token.symbol} ` +
+        `transfer 5 ${token.symbol} ` +
         `to ${utils.formatAccount(accounts[2])} after the lock period expired`,
       async function() {
         await utils.assertTotalSupply(web3, token, 10);
@@ -160,17 +181,29 @@ exports.test = function(web3, accounts, token) {
         await utils.assertBalance(web3, token, accounts[2], 0);
 
         await sleep(10000);
+        assert.equal(
+          web3.utils.toWei('10'),
+          await token.contract.methods
+            .getAmountOfUnlockedTokens(accounts[1])
+            .call({ gas: 300000, from: accounts[1] })
+        );
 
         await token.contract.methods
-          .transfer(accounts[2], web3.utils.toWei('10'))
+          .transfer(accounts[2], web3.utils.toWei('5'))
           .send({ gas: 300000, from: accounts[1] });
 
         await utils.getBlock(web3);
+        assert.equal(
+          web3.utils.toWei('5'),
+          await token.contract.methods
+            .getAmountOfUnlockedTokens(accounts[1])
+            .call({ gas: 300000, from: accounts[1] })
+        );
 
         await utils.assertTotalSupply(web3, token, 10);
         await utils.assertBalance(web3, token, accounts[0], 0);
-        await utils.assertBalance(web3, token, accounts[1], 0);
-        await utils.assertBalance(web3, token, accounts[2], 10);
+        await utils.assertBalance(web3, token, accounts[1], 5);
+        await utils.assertBalance(web3, token, accounts[2], 5);
       }
     );
 
@@ -274,7 +307,7 @@ exports.test = function(web3, accounts, token) {
 
     it(
       `should let ${utils.formatAccount(accounts[1])} ` +
-        `transferFrom 10 ${token.symbol} ` +
+        `transferFrom 5 ${token.symbol} ` +
         `to ${utils.formatAccount(accounts[2])} after the lock period expired`,
       async function() {
         await utils.assertTotalSupply(web3, token, 10);
@@ -290,23 +323,36 @@ exports.test = function(web3, accounts, token) {
         );
 
         await sleep(10000);
+        assert.equal(
+          web3.utils.toWei('10'),
+          await token.contract.methods
+            .getAmountOfUnlockedTokens(accounts[1])
+            .call({ gas: 300000, from: accounts[1] })
+        );
 
         await token.contract.methods
-          .approve(accounts[9], web3.utils.toWei('10'))
+          .approve(accounts[9], web3.utils.toWei('5'))
           .send({ gas: 300000, from: accounts[1] });
 
         assert.equal(
           await token.contract.methods
             .allowance(accounts[1], accounts[9])
             .call({ gas: 300000, from: accounts[1] }),
-          web3.utils.toWei('10')
+          web3.utils.toWei('5')
         );
 
         await token.contract.methods
-          .transferFrom(accounts[1], accounts[2], web3.utils.toWei('10'))
+          .transferFrom(accounts[1], accounts[2], web3.utils.toWei('5'))
           .send({ gas: 300000, from: accounts[9] });
 
         await utils.getBlock(web3);
+
+        assert.equal(
+          web3.utils.toWei('5'),
+          await token.contract.methods
+            .getAmountOfUnlockedTokens(accounts[1])
+            .call({ gas: 300000, from: accounts[1] })
+        );
 
         assert.equal(
           await token.contract.methods
@@ -316,8 +362,8 @@ exports.test = function(web3, accounts, token) {
         );
         await utils.assertTotalSupply(web3, token, 10);
         await utils.assertBalance(web3, token, accounts[0], 0);
-        await utils.assertBalance(web3, token, accounts[1], 0);
-        await utils.assertBalance(web3, token, accounts[2], 10);
+        await utils.assertBalance(web3, token, accounts[1], 5);
+        await utils.assertBalance(web3, token, accounts[2], 5);
         await utils.assertBalance(web3, token, accounts[9], 0);
       }
     );
@@ -447,7 +493,7 @@ exports.test = function(web3, accounts, token) {
 
     it(
       `should  let ${utils.formatAccount(accounts[1])} ` +
-        `operatorSend 10 ${token.symbol} ` +
+        `operatorSend 5 ${token.symbol} ` +
         `to ${utils.formatAccount(accounts[2])} after the lock period expired`,
       async function() {
         await utils.assertTotalSupply(web3, token, 10);
@@ -473,6 +519,12 @@ exports.test = function(web3, accounts, token) {
           .send({ gas: 300000, from: accounts[1] });
 
         await sleep(10000);
+        assert.equal(
+          web3.utils.toWei('10'),
+          await token.contract.methods
+            .getAmountOfUnlockedTokens(accounts[1])
+            .call({ gas: 300000, from: accounts[1] })
+        );
 
         assert.equal(
           await token.contract.methods
@@ -485,13 +537,20 @@ exports.test = function(web3, accounts, token) {
           .operatorSend(
             accounts[1],
             accounts[2],
-            web3.utils.toWei('10'),
+            web3.utils.toWei('5'),
             '0xcafe',
             '0xcafe'
           )
           .send({ gas: 300000, from: accounts[9] });
 
         await utils.getBlock(web3);
+
+        assert.equal(
+          web3.utils.toWei('5'),
+          await token.contract.methods
+            .getAmountOfUnlockedTokens(accounts[1])
+            .call({ gas: 300000, from: accounts[1] })
+        );
 
         assert.equal(
           await token.contract.methods
@@ -501,8 +560,8 @@ exports.test = function(web3, accounts, token) {
         );
         await utils.assertTotalSupply(web3, token, 10);
         await utils.assertBalance(web3, token, accounts[0], 0);
-        await utils.assertBalance(web3, token, accounts[1], 0);
-        await utils.assertBalance(web3, token, accounts[2], 10);
+        await utils.assertBalance(web3, token, accounts[1], 5);
+        await utils.assertBalance(web3, token, accounts[2], 5);
         await utils.assertBalance(web3, token, accounts[9], 0);
       }
     );
@@ -635,7 +694,7 @@ exports.test = function(web3, accounts, token) {
 
     it(
       `should let ${utils.formatAccount(accounts[1])} ` +
-        `transferFrom 10 ${token.symbol} ` +
+        `transferFrom 5 ${token.symbol} ` +
         `to ${utils.formatAccount(accounts[2])} after the lock period expired`,
       async function() {
         await utils.assertTotalSupply(web3, token, 10);
@@ -651,23 +710,29 @@ exports.test = function(web3, accounts, token) {
         );
 
         await sleep(10000);
+        assert.equal(
+          web3.utils.toWei('10'),
+          await token.contract.methods
+            .getAmountOfUnlockedTokens(accounts[1])
+            .call({ gas: 300000, from: accounts[1] })
+        );
 
         await token.contract.methods
-          .approveAndCall(accounts[9], web3.utils.toWei('10'), '0xcafe')
+          .approveAndCall(accounts[9], web3.utils.toWei('5'), '0xcafe')
           .send({ gas: 300000, from: accounts[1] });
 
         assert.equal(
           await token.contract.methods
             .allowance(accounts[1], accounts[9])
             .call({ gas: 300000, from: accounts[1] }),
-          web3.utils.toWei('10')
+          web3.utils.toWei('5')
         );
 
         await token.contract.methods
           .operatorSend(
             accounts[1],
             accounts[2],
-            web3.utils.toWei('10'),
+            web3.utils.toWei('5'),
             '0xcafe',
             '0xcafe'
           )
@@ -675,10 +740,16 @@ exports.test = function(web3, accounts, token) {
           .should.be.rejectedWith('revert');
 
         await token.contract.methods
-          .transferFrom(accounts[1], accounts[2], web3.utils.toWei('10'))
+          .transferFrom(accounts[1], accounts[2], web3.utils.toWei('5'))
           .send({ gas: 300000, from: accounts[9] });
 
         await utils.getBlock(web3);
+        assert.equal(
+          web3.utils.toWei('5'),
+          await token.contract.methods
+            .getAmountOfUnlockedTokens(accounts[1])
+            .call({ gas: 300000, from: accounts[1] })
+        );
 
         assert.equal(
           await token.contract.methods
@@ -688,8 +759,8 @@ exports.test = function(web3, accounts, token) {
         );
         await utils.assertTotalSupply(web3, token, 10);
         await utils.assertBalance(web3, token, accounts[0], 0);
-        await utils.assertBalance(web3, token, accounts[1], 0);
-        await utils.assertBalance(web3, token, accounts[2], 10);
+        await utils.assertBalance(web3, token, accounts[1], 5);
+        await utils.assertBalance(web3, token, accounts[2], 5);
         await utils.assertBalance(web3, token, accounts[9], 0);
       }
     );
