@@ -8,7 +8,6 @@ import "./IVersionRegistry.sol";
 /// @title ContractRegistryBase
 /// @dev defines the base registry function sets for future versions to inherit from
 contract ContractRegistryBase is UnstructuredOwnable, VersionRegistry, ERC820Registry, IVersionRegistry { 
-  //todo does UnstructuredOwnable inheritance position matter? --^
 
   event Initialized(address owner);
   
@@ -25,9 +24,9 @@ contract ContractRegistryBase is UnstructuredOwnable, VersionRegistry, ERC820Reg
 
   function setProxy(address proxyAddr, string contractName, bool override) public onlyOwner {
     if(!override) {
-      require(proxyContracts[keccak256(contractName)] != address(0));
+      require(proxyContracts[keccak256(abi.encodePacked(contractName))] != address(0));
     }
-    proxyContracts[keccak256(contractName)] = proxyAddr;
+    proxyContracts[keccak256(abi.encodePacked(contractName))] = proxyAddr;
   }
 
   function initialize(address owner) public onlyOwner {
@@ -44,8 +43,6 @@ contract ContractRegistryBase is UnstructuredOwnable, VersionRegistry, ERC820Reg
     return _initialized;
   }
 
-
-  //todo BEFORE LAUNCH: onlyOwner! <-- needs to be the addr of the proxy as thats the one who sends the tx
   function setVersion(
     string contractName, 
     address proxyAddress, 
