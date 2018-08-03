@@ -25,8 +25,14 @@ contract Basic777 is Pausable, ERC20Token, ERC777Token, ERC820Implementer {
     bool private mErc20compatible;
 
     mapping(address => uint) private mBalances;
+    mapping(address => lockedTokens) private mLockedBalances;
     mapping(address => mapping(address => bool)) private mAuthorized;
     mapping(address => mapping(address => uint256)) private mAllowed;
+
+    struct lockedTokens {
+        uint amount;
+        uint256 timeLockedUntil;
+    }
 
     /* -- Constructor -- */
     constructor () public { }
@@ -106,19 +112,22 @@ contract Basic777 is Pausable, ERC20Token, ERC777Token, ERC820Implementer {
         AuthorizedOperator(_operator, msg.sender);
     }
 
-    /// @notice extended 777 functionality that gives an allowance and calls the new operator.
+    /// @notice extended 777 approveAndCall and erc20 approve functionality that gives an allowance and calls the new operator.
     ///  `msg.sender` approves `_spender` to spend `_amount` tokens on its behalf.
     /// @param _operator The address of the account able to transfer the tokens
     /// @param _amount The number of tokens to be approved for transfer
+    /// @dev to revoke the operator of SOME allowance simply call it again as it will overwrite its previous allowance.
     /// @return `true`, if the approve can't be done, it should fail.
-    function authorizeOperatorAndCall(address _operator, uint256 _amount) public whenNotPaused erc20 returns (bool success) {
+    function approveAndCall(address _operator, uint256 _amount, bytes _operatorData) public whenNotPaused returns (bool success) {
+        uint balanceAvailable = getAmountOfUnlockedTokens(msg.sender);
+        require(balanceAvailable >= _amount);
         mAllowed[msg.sender][_operator] = _amount;
-        callOperator(_operator, msg.sender, _operator, _amount, "0x0", "0x0", true);
+        callOperator(_operator, msg.sender, _operator, _amount, "0x0", _operatorData, true);
         Approval(msg.sender, _operator, _amount);
         return true;
     }
 
-    /// @notice Revoke a third party `_operator`'s rights to manage (send) `msg.sender`'s tokens.
+     /// @notice Revoke a third party `_operator`'s rights to manage (send) `msg.sender`'s tokens.
     /// @param _operator The operator that wants to be Revoked
     function revokeOperator(address _operator) public whenNotPaused {
         require(_operator != msg.sender);
@@ -169,6 +178,8 @@ contract Basic777 is Pausable, ERC20Token, ERC777Token, ERC820Implementer {
     /// @param _amount The quantity of tokens to burn
     function burn(address _tokenHolder, uint256 _amount, bytes _userData, bytes _operatorData) public onlyOwner {
         requireMultiple(_amount);
+        uint balanceAvailable = getAmountOfUnlockedTokens(_tokenHolder);
+        require(balanceAvailable >= _amount);
 
         callSender(msg.sender, _tokenHolder, 0x0, _amount, _userData, _operatorData);
 
@@ -224,6 +235,8 @@ contract Basic777 is Pausable, ERC20Token, ERC777Token, ERC820Implementer {
     /// @param _amount The number of tokens to be transferred
     /// @return `true`, if the transfer can't be done, it should fail.
     function transferFrom(address _from, address _to, uint256 _amount) public whenNotPaused erc20 returns (bool success) {
+        uint balanceAvailable = getAmountOfUnlockedTokens(_from);
+        require(balanceAvailable >= _amount);
         require(_amount <= mAllowed[_from][msg.sender]);
 
         // Cannot be after doSend because of tokensReceived re-entry
@@ -238,6 +251,8 @@ contract Basic777 is Pausable, ERC20Token, ERC777Token, ERC820Implementer {
     /// @param _amount The number of tokens to be approved for transfer
     /// @return `true`, if the approve can't be done, it should fail.
     function approve(address _spender, uint256 _amount) public whenNotPaused erc20 returns (bool success) {
+        uint balanceAvailable = getAmountOfUnlockedTokens(msg.sender);
+        require(balanceAvailable >= _amount);
         mAllowed[msg.sender][_spender] = _amount;
         Approval(msg.sender, _spender, _amount);
         return true;
@@ -293,11 +308,12 @@ contract Basic777 is Pausable, ERC20Token, ERC777Token, ERC820Implementer {
         private whenNotPaused
     {
         requireMultiple(_amount);
+        uint balanceAvailable = getAmountOfUnlockedTokens(_from);
 
         callSender(_operator, _from, _to, _amount, _userData, _operatorData);
 
         require(_to != address(0));          // forbid sending to 0x0 (=burning)
-        require(mBalances[_from] >= _amount); // ensure enough funds
+        require(balanceAvailable >= _amount); // ensure enough funds
 
         mBalances[_from] = mBalances[_from].sub(_amount);
         mBalances[_to] = mBalances[_to].add(_amount);
@@ -333,6 +349,7 @@ contract Basic777 is Pausable, ERC20Token, ERC777Token, ERC820Implementer {
             ERC777TokensRecipient(recipientImplementation).tokensReceived(
                 _operator, _from, _to, _amount, _userData, _operatorData);
         } else if (_preventLocking) {
+            //todo add global preventlocking
             require(isRegularAddress(_to));
         }
     }
@@ -390,5 +407,42 @@ contract Basic777 is Pausable, ERC20Token, ERC777Token, ERC820Implementer {
         } else if (_preventLocking) {
             require(isRegularAddress(_to));
         }
+    }
+
+    /// @notice locks a percentage of tokens for a specified time period and then grants ownership to the specified owner
+    /// @param _tokenHolder The address to give the tokens to
+    /// @param _amount The amount of tokens to give the holder (the immediate amount including the amount to lock)
+    /// @param _percentageToLock the percentage of the distributed tokens to lock
+    /// @param _unlockTime the block.timestamp to unlock the tokens at
+    function lockAndDistributeTokens(address _tokenHolder, uint256 _amount, uint256 _percentageToLock, uint256 _unlockTime) public onlyOwner {
+        requireMultiple(_amount);
+        require(_percentageToLock <= 100 && _percentageToLock > 0);
+        require(mLockedBalances[_tokenHolder].amount == 0);
+        uint256 amountToLock = _amount.mul(_percentageToLock).div(100);
+        mBalances[msg.sender] = mBalances[msg.sender].sub(_amount);
+        mBalances[_tokenHolder] = mBalances[_tokenHolder].add(_amount);
+        mLockedBalances[_tokenHolder] = lockedTokens({
+            amount: amountToLock,
+            timeLockedUntil: _unlockTime
+        });
+
+        callRecipient(msg.sender, 0x0, _tokenHolder, _amount, "", "", true);
+
+        if (mErc20compatible) { Transfer(0x0, _tokenHolder, _amount); }
+    }
+
+    /// @notice Helper function that returns the amount of tokens aof an owner minus the amount currently locked
+    /// @param _tokenOwner The address holding the tokens
+    function getAmountOfUnlockedTokens(address _tokenOwner) public returns(uint) {
+        uint balanceAvailable = mBalances[_tokenOwner];
+        if (mLockedBalances[_tokenOwner].amount != 0 && mLockedBalances[_tokenOwner].timeLockedUntil > block.timestamp){
+            balanceAvailable = balanceAvailable.sub(mLockedBalances[_tokenOwner].amount);
+        } else if (mLockedBalances[_tokenOwner].amount != 0 && mLockedBalances[_tokenOwner].timeLockedUntil < block.timestamp) {
+            mLockedBalances[_tokenOwner] = lockedTokens({
+                amount: 0,
+                timeLockedUntil: 0
+            });
+        }
+        return balanceAvailable;
     }
 }

@@ -182,6 +182,7 @@ contract('KPXV0_1_0', function(accounts) {
   require('./utils/tokensRecipient').test(web3, accounts, token);
   require('./utils/erc20Compatibility').test(web3, accounts, token);
   require('./utils/pause').test(web3, accounts, token);
+  require('./utils/lockAndDistribute').test(web3, accounts, token);
 
   describe('ERC20 Disable', function() {
     it('should disable ERC20 compatibility', async function() {
