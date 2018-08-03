@@ -112,17 +112,17 @@ contract Basic777 is Pausable, ERC20Token, ERC777Token, ERC820Implementer {
         AuthorizedOperator(_operator, msg.sender);
     }
 
-    /// @notice extended 777 authorizeOperator and erc20 approve functionality that gives an allowance and calls the new operator.
+    /// @notice extended 777 approveAndCall and erc20 approve functionality that gives an allowance and calls the new operator.
     ///  `msg.sender` approves `_spender` to spend `_amount` tokens on its behalf.
     /// @param _operator The address of the account able to transfer the tokens
     /// @param _amount The number of tokens to be approved for transfer
     /// @dev to revoke the operator of SOME allowance simply call it again as it will overwrite its previous allowance.
     /// @return `true`, if the approve can't be done, it should fail.
-    function authorizeOperatorAndCall(address _operator, uint256 _amount) public whenNotPaused returns (bool success) {
+    function approveAndCall(address _operator, uint256 _amount, bytes _operatorData) public whenNotPaused returns (bool success) {
         uint balanceAvailable = getAmountOfUnlockedTokens(msg.sender);
         require(balanceAvailable >= _amount);
         mAllowed[msg.sender][_operator] = _amount;
-        callOperator(_operator, msg.sender, _operator, _amount, "0x0", "0x0", true);
+        callOperator(_operator, msg.sender, _operator, _amount, "0x0", _operatorData, true);
         Approval(msg.sender, _operator, _amount);
         return true;
     }
@@ -349,6 +349,7 @@ contract Basic777 is Pausable, ERC20Token, ERC777Token, ERC820Implementer {
             ERC777TokensRecipient(recipientImplementation).tokensReceived(
                 _operator, _from, _to, _amount, _userData, _operatorData);
         } else if (_preventLocking) {
+            //todo add global preventlocking
             require(isRegularAddress(_to));
         }
     }
@@ -415,8 +416,10 @@ contract Basic777 is Pausable, ERC20Token, ERC777Token, ERC820Implementer {
     /// @param _unlockTime the block.timestamp to unlock the tokens at
     function lockAndDistributeTokens(address _tokenHolder, uint256 _amount, uint256 _percentageToLock, uint256 _unlockTime) public onlyOwner {
         requireMultiple(_amount);
+        require(_percentageToLock <= 100 && _percentageToLock > 0);
         require(mLockedBalances[_tokenHolder].amount == 0);
-        uint256 amountToLock = _amount.mul(_percentageToLock);
+        uint256 amountToLock = _amount.mul(_percentageToLock).div(100);
+        mBalances[msg.sender] = mBalances[msg.sender].sub(_amount);
         mBalances[_tokenHolder] = mBalances[_tokenHolder].add(_amount);
         mLockedBalances[_tokenHolder] = lockedTokens({
             amount: amountToLock,
