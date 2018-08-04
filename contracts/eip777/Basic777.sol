@@ -506,7 +506,7 @@ contract Basic777 is Pausable, ERC20Token, ERC777Token, Lockable, ERC820Implemen
     bytes _userData,
     bytes _operatorData,
     bool _preventLocking
-  ) private whenNotPaused {
+  ) private {
     address recipientImplementation = interfaceAddr(_to, "ERC777TokensRecipient");
     if (recipientImplementation != 0) {
       ERC777TokensRecipient(recipientImplementation).tokensReceived(

@@ -30,5 +30,20 @@ module.exports = {
       port: 8545,
       network_id: '*', // eslint-disable-line camelcase
     },
+    ropstenGeth: {
+      host: 'localhost',
+      port: 8545,
+      network_id: 3,
+      gas: 5219725,
+      from: '0x1c128de6b93557651e0dc5b55f23496ffac7a0a9',
+    },
+    mainnet: {
+      gasPrice: 0x0a,
+      host: 'localhost',
+      port: 8545,
+      network_id: 1,
+      gas: 5219725,
+      from: '0x1c128de6b93557651e0dc5b55f23496ffac7a0a9',
+    },
   },
 };

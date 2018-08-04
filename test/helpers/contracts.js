@@ -17,7 +17,11 @@ const deployUpgradeableContract = async (
   contract,
   registry,
   initializeParams,
-  deployParams = {}
+  deployParams = {
+    gas: 5219725,
+    from: '0x1c128de6b93557651e0dc5b55f23496ffac7a0a9',
+    gasPrice: 0x0a,
+  }
 ) => {
   const [contractName, versionName] = parseContractName(contract.contractName);
   const contractRegistry =
@@ -31,7 +35,11 @@ const deployUpgradeableContract = async (
       .require('UnstructuredOwnedUpgradeabilityProxy')
       .new(contractRegistry.address, deployParams));
 
-  const contractToMakeUpgradeable = await contract.new(deployParams);
+  //console.log('deployed proxy succesfully...');
+
+  //console.log('contractToMakeUpgradeable', deployParams);
+  const contractToMakeUpgradeable = await contract.new();
+  //console.log('deployed contractToMakeUpgradeable succesfully...');
 
   if (initializeParams) {
     const initializeData = encodeCall(
@@ -39,7 +47,10 @@ const deployUpgradeableContract = async (
       initializeParams[0], // ex: ['string', 'string', 'uint', 'uint', 'address', 'address'],
       initializeParams[1] // ex: ['Upgradeable NORI Token', 'NORI', 1, 0, contractRegistry.address, admin]
     );
-    registry.setProxy(proxy.address, 'KPX', true);
+    //console.log('setting proxy', proxy.address);
+
+    await registry.setProxy(proxy.address, 'KPX', true);
+    //console.log(' proxy set! upgradeAndCall', initializeParams);
 
     await proxy.upgradeToAndCall(
       contractName,
@@ -49,14 +60,16 @@ const deployUpgradeableContract = async (
       deployParams
     );
   } else {
+    //console.log('upgradeTo begin..');
     await proxy.upgradeTo(
       contractName,
       versionName,
       contractToMakeUpgradeable.address,
       deployParams
     );
+    //console.log('upgradeTo complete');
   }
-
+  //console.log('getting contract At', proxy.address);
   const upgradeableContractAtProxy = await contract.at(
     proxy.address,
     deployParams
@@ -110,14 +123,26 @@ const upgradeAndMigrateContracts = (
   multiAdmin,
   root
 ) => {
+  //console.log('accounts[0]', accounts[0]);
   return mapSeries(contractsToUpgrade, async contractConfig => {
     const {
       contractName,
       initParamTypes,
       initParamVals,
       registry,
-    } = await contractConfig(root, artifacts, accounts[0]);
+    } = await contractConfig(
+      root,
+      artifacts,
+      '0x1c128de6b93557651e0dc5b55f23496ffac7a0a9'
+    );
     const version = await getLatestVersionFromFs(contractName);
+
+    // console.log(
+    //   'deployUpgradeableContract...',
+    //   root.address,
+    //   contractName,
+    //   version
+    // );
 
     return deployUpgradeableContract(
       artifacts,
