@@ -1,0 +1,10 @@
+web3.eth.getLatestBlock()
+web3.eth.getBlock
+web3.eth.getBlock()
+web3.eth.getLatestBlock
+web3.eth.getLastBlock
+web3.eth.blockNumber
+web3.eth.isSyncing()
+web3.eth.syncing()
+web3.eth.syncing
+version
