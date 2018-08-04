@@ -37,8 +37,8 @@ module.exports = {
       gas: 5219725,
       from: '0x1c128de6b93557651e0dc5b55f23496ffac7a0a9',
     },
-    mainnet: {
-      gasPrice: 0x0a,
+    live: {
+      gasPrice: 20000000000, // 10 gwei
       host: 'localhost',
       port: 8545,
       network_id: 1,

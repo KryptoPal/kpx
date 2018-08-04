@@ -20,7 +20,7 @@ const deployUpgradeableContract = async (
   deployParams = {
     gas: 5219725,
     from: '0x1c128de6b93557651e0dc5b55f23496ffac7a0a9',
-    gasPrice: 0x0a,
+    gasPrice: 10000000000, // 10 gwei
   }
 ) => {
   const [contractName, versionName] = parseContractName(contract.contractName);

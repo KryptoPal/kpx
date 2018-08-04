@@ -16,7 +16,8 @@ module.exports = (deployer, network, accounts) => {
     };
     const root = await deployer.deploy(
       RootRegistryV0_1_0,
-      '0x1c128de6b93557651e0dc5b55f23496ffac7a0a9'
+      '0x1c128de6b93557651e0dc5b55f23496ffac7a0a9',
+      { gasPrice: 20000000000 }
     );
 
     const contractsToUpgrade = [kpxConfig];
