@@ -8,8 +8,13 @@ This is the standalone repo for the ERC 777 implementation of the KrypoX token
 
 `0x475c0ddfb60af8eac0b4fcaa9b9bdc6442362294`
 
-History:
-8/4/18
+### ContributionLedger
+
+`0x58ec6d4d2b423fa90f57283fedc9537894729ec9`
+
+### History:
+
+#### 8/4/18
 
 ```
   Deploying RootRegistryV0_1_0...
@@ -20,4 +25,12 @@ History:
   ... 0xa28514d4f5732b29b1ee4f77c2754faabc4c2044524b8d275868ae983344f756
   ... 0x4a715825e264fd6e2ac50572605bf3536331450d6b8eff983a4ab9ea91683b82
   ... 0x2df87d34a4e56ef4a1402310bcd6fe5356a0339e20693c500b038377704c58bc
+```
+
+#### 8/5/18
+
+```
+Deploying ContributionLedger...
+  ... 0x432e3e926306a0c5edea8b4b4290df0ee9f9bea0b780d3717a7f2f37ddce8044
+  ContributionLedger: 0x58ec6d4d2b423fa90f57283fedc9537894729ec9
 ```

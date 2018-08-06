@@ -1,10 +1,7 @@
 const encodeCall = require('./utils').encodeCall;
-
-const { promisify } = require('util');
 const { mapSeries } = require('bluebird');
 const glob = require('glob');
 const path = require('path');
-const utils = require('./utils');
 
 const parseContractName = contractName => {
   const [, name, version] = contractName.match(/^(.*)V([^V]+)$/);
@@ -35,22 +32,16 @@ const deployUpgradeableContract = async (
       .require('UnstructuredOwnedUpgradeabilityProxy')
       .new(contractRegistry.address, deployParams));
 
-  //console.log('deployed proxy succesfully...');
-
-  //console.log('contractToMakeUpgradeable', deployParams);
   const contractToMakeUpgradeable = await contract.new();
-  //console.log('deployed contractToMakeUpgradeable succesfully...');
 
   if (initializeParams) {
     const initializeData = encodeCall(
       'initialize',
       initializeParams[0], // ex: ['string', 'string', 'uint', 'uint', 'address', 'address'],
-      initializeParams[1] // ex: ['Upgradeable NORI Token', 'NORI', 1, 0, contractRegistry.address, admin]
+      initializeParams[1] // ex ["KryptoX", "KPX", ...]
     );
-    //console.log('setting proxy', proxy.address);
 
     await registry.setProxy(proxy.address, 'KPX', true);
-    //console.log(' proxy set! upgradeAndCall', initializeParams);
 
     await proxy.upgradeToAndCall(
       contractName,
@@ -60,16 +51,13 @@ const deployUpgradeableContract = async (
       deployParams
     );
   } else {
-    //console.log('upgradeTo begin..');
     await proxy.upgradeTo(
       contractName,
       versionName,
       contractToMakeUpgradeable.address,
       deployParams
     );
-    //console.log('upgradeTo complete');
   }
-  //console.log('getting contract At', proxy.address);
   const upgradeableContractAtProxy = await contract.at(
     proxy.address,
     deployParams
@@ -123,7 +111,6 @@ const upgradeAndMigrateContracts = (
   multiAdmin,
   root
 ) => {
-  //console.log('accounts[0]', accounts[0]);
   return mapSeries(contractsToUpgrade, async contractConfig => {
     const {
       contractName,
@@ -136,13 +123,6 @@ const upgradeAndMigrateContracts = (
       '0x1c128de6b93557651e0dc5b55f23496ffac7a0a9'
     );
     const version = await getLatestVersionFromFs(contractName);
-
-    // console.log(
-    //   'deployUpgradeableContract...',
-    //   root.address,
-    //   contractName,
-    //   version
-    // );
 
     return deployUpgradeableContract(
       artifacts,

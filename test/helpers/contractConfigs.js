@@ -1,4 +1,4 @@
-const { getLatestVersionFromFs } = require('./contracts');
+//const { getLatestVersionFromFs } = require('./contracts');
 
 const contractRegistryConfig = async (root, artifacts, admin) => ({
   contractName: 'ContractRegistry',
@@ -18,6 +18,6 @@ const kpxConfig = async (root, artifacts, admin) =>
   );
 
 module.exports = {
-  // contractRegistryConfig,
+  contractRegistryConfig,
   kpxConfig,
 };
