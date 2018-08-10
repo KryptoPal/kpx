@@ -38,7 +38,7 @@ module.exports = {
       from: '0x1c128de6b93557651e0dc5b55f23496ffac7a0a9',
     },
     live: {
-      gasPrice: 20000000000, // 10 gwei
+      gasPrice: 50000000000, // 50 gwei
       host: 'localhost',
       port: 8545,
       network_id: 1,
